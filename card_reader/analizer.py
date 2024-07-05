@@ -1,10 +1,15 @@
 import base64
+import json
 import io
 from PIL import Image
 from transformers import AutoFeatureExtractor, AutoModel
+from transformers import pipeline
+from icecream import ic
 
-def get_image_from_base64(json_data):
-    # Extract base64 string from JSON
+MODE = "image-segmentation"
+MODEL_TAG = "briaai/RMBG-1.4" 
+
+def decode_image(json_data: dict[str, str]) -> io.BytesIO:
     base64_string = json_data.get("bin")
 
     # Decode the base64 string
@@ -15,8 +20,25 @@ def get_image_from_base64(json_data):
 
     return image
 
-# Example usage:
+def encode_image(image_path: str) -> dict[str, str]:
+    # Read the image file in binary mode
+    with open(image_path, "rb") as image_file:
+        # Encode the image to base64
+        base64_encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+    
+    # Create a JSON object
+    json_data = {
+        "bin": base64_encoded_image
+    }
+    return json_data
 
+def extract_card(image: Image) -> Image:
+    segmentation_pipeline = pipeline("image-segmentation", model="briaai/RMBG-1.4", trust_remote_code=True)
+
+    # Perform image segmentation
+    outputs = segmentation_pipeline(image)
+    return outputs
+"""
 image = get_image_from_base64(json_data)
 
 # Now, convert the image to a format compatible with Hugging Face models
@@ -30,3 +52,4 @@ inputs = feature_extractor(images=image, return_tensors="pt")
 # Now you can pass 'inputs' to the model
 outputs = model(**inputs)
 print(outputs)
+"""
