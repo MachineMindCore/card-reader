@@ -3,6 +3,7 @@ import json
 import io
 from PIL import Image
 from transformers import AutoFeatureExtractor, AutoModel
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from transformers import pipeline
 from icecream import ic
 
@@ -38,6 +39,19 @@ def extract_card(image: Image) -> Image:
     # Perform image segmentation
     outputs = segmentation_pipeline(image)
     return outputs
+
+def extract_text(image: Image) -> str:
+    processor = TrOCRProcessor.from_pretrained('microsoft/trocr-large-printed')
+    model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-large-printed')
+
+    # Prepare the image for the model
+    pixel_values = processor(images=image.convert("RGB"), return_tensors="pt").pixel_values
+
+    # Generate text
+    generated_ids = model.generate(pixel_values)
+    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+
+    return generated_text
 """
 image = get_image_from_base64(json_data)
 
